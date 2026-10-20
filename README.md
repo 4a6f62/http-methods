@@ -52,7 +52,7 @@ chmod +x http-methods.sh
 Run the script using the `-u` flag followed by the target URL:
 
 ```bash
-./http-methods.sh -u [https://example.com](https://example.com)
+./http-methods.sh -u https://example.com
 
 ```
 
