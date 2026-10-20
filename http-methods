@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    echo "Usage: $0 -u <url>"
+    exit 1
+}
+
+banner() {
+cat << "EOF"
+
+██╗  ██╗████████╗████████╗██████╗     ███╗   ███╗███████╗████████╗██╗  ██╗
+██║  ██║╚══██╔══╝╚══██╔══╝██╔══██╗    ████╗ ████║██╔════╝╚══██╔══╝██║  ██║
+███████║   ██║      ██║   ██████╔╝    ██╔████╔██║█████╗     ██║   ███████║
+██╔══██║   ██║      ██║   ██╔═══╝     ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║
+██║  ██║   ██║      ██║   ██║         ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║
+╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝         ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝
+
+          HTTP Method Enumeration & Verb Discovery
+
+EOF
+}
+
+while getopts ":u:" opt; do
+    case "$opt" in
+        u) URL="$OPTARG" ;;
+        *) usage ;;
+    esac
+done
+
+[[ -z "${URL:-}" ]] && usage
+
+METHODS=(
+    GET POST PUT PATCH DELETE HEAD OPTIONS TRACE CONNECT
+    PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK
+    HACKTHEPLANET FOOBAR TESTMETHOD
+)
+
+banner
+
+echo "[+] Target : $URL"
+echo "[+] Started: $(date)"
+echo
+
+redirect=$(curl -skI "$URL" | awk 'BEGIN{IGNORECASE=1} /^location:/ {print $2}' | tr -d '\r')
+
+if [ -n "$redirect" ]; then
+    echo "[+] Redirect detected"
+    echo "[+] Original : $URL"
+    echo "[+] New URL  : $redirect"
+    echo
+
+    URL="$redirect"
+fi
+
+echo
+printf "\n%-15s %-10s\n" "METHOD" "STATUS"
+printf "%-15s %-10s\n" "------" "------"
+
+for method in "${METHODS[@]}"; do
+    status=$(curl -sk -o /dev/null -w "%{http_code}" \
+        -X "$method" "$URL" 2>/dev/null || echo "ERR")
+
+    printf "%-15s %-10s\n" "$method" "$status"
+done
